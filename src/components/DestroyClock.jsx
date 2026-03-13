@@ -78,7 +78,7 @@ function buildControlPoint(A, B, arcRng) {
     .addScaledVector(perp, arcMag * 0.4);
 }
 
-// ── Parse model ───────────────────────────────────────────────────────────────
+// ── Parse model 
 
 function parseModel(scene) {
   const shards = [], bodies = [];
@@ -449,7 +449,7 @@ export default function ModelViewer() {
       const st        = animState.current;
 
       if (reqIdx === activeModelRef.current) return;
-      if (st.phase === "exploding" || st.phase === "morphing" || st.phase === "revealed") return;
+      // if (st.phase === "exploding" || st.phase === "morphing" || st.phase === "revealed") return;
 
       allShards.forEach((s) => resetShardsHidden(s));
       allBodies.forEach((b) => resetBodiesHidden(b));
