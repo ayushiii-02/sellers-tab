@@ -14,11 +14,11 @@ import * as THREE from "three";
 // ── Config 
 
 const MODEL_PATHS = [
-  "https://sellers-tab.vercel.app/The Keystone 3.glb",
-  "https://sellers-tab.vercel.app/The Oracle's Eye 3.glb",
-  "https://sellers-tab.vercel.app/The Lodestone Compass.glb",
-  "https://sellers-tab.vercel.app/The Resonating Bell.glb",
-  "https://sellers-tab.vercel.app/The Interlocking Gears.glb",
+"/The Keystone 3.glb",
+"/The Oracle's Eye 3.glb",
+"/The Lodestone Compass.glb",
+"/The Resonating Bell.glb",
+"/The Interlocking Gears.glb",
 ];
 const MODEL_SCALE = 5.5;
 
@@ -32,7 +32,7 @@ const SCATTER_RADIUS       = 0.30;
 const SCATTER_SCALE        = 2.2;
 const ARC_HEIGHT           = 0.18;
 
-// ── Easing ───────────────────────────────────────────────────────────────────
+// ── Easing 
 
 const ease = {
   outCubic:   (t) => 1 - (1 - t) ** 3,
