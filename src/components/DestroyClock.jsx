@@ -11,14 +11,14 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useGLTF, Environment } from "@react-three/drei";
 import * as THREE from "three";
 
-// ── Config ───────────────────────────────────────────────────────────────────
+// ── Config 
 
 const MODEL_PATHS = [
-  "/The Keystone 3.glb",
-  "/The Oracle's Eye 3.glb",
-  "/The Lodestone Compass.glb",
-  "/The Resonating Bell.glb",
-  "/The Interlocking Gears.glb",
+  "https://sellers-tab.vercel.app/The Keystone 3.glb",
+  "https://sellers-tab.vercel.app/The Oracle's Eye 3.glb",
+  "https://sellers-tab.vercel.app/The Lodestone Compass.glb",
+  "https://sellers-tab.vercel.app/The Resonating Bell.glb",
+  "https://sellers-tab.vercel.app/The Interlocking Gears.glb",
 ];
 const MODEL_SCALE = 5.5;
 
