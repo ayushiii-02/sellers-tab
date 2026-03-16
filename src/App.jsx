@@ -38,7 +38,7 @@ const TABS = [
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Labrada:ital,wght@0,100;0,200;1,100&display=swap');
+  // @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Labrada:ital,wght@0,100;0,200;1,100&display=swap');
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -268,7 +268,7 @@ export default function App() {
             camera={{ position: [0, 0, 5], fov: 30 }}
             gl={{ powerPreference: "high-performance" }}
           >
-            <color attach="background" args={["#f9f7f4"]} />
+            {/* <color attach="background" args={["#f9f7f4"]} /> */}
             <Experience />
           </Canvas>
         </div>
@@ -293,7 +293,7 @@ export default function App() {
           ))}
         </nav> */}
 
-        <span className="corner-mark">Form · Matter</span>
+        {/* <span className="corner-mark">Form · Matter</span> */}
 
       </div>
     </>
