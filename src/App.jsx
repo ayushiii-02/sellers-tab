@@ -75,7 +75,6 @@ export default function App() {
 
       
           <Canvas
-          style={{scale: 1.2}}
             dpr={[1, 1.5]}
             shadows
             camera={{ position: [0, 0, 5], fov: 30 }}
