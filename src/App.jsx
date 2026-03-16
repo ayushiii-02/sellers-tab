@@ -539,7 +539,7 @@ export default function App() {
           ))}
         </nav> */}
 
-        <span className="corner-mark">Form · Matter</span>
+        {/* <span className="corner-mark">Form · Matter</span> */}
 
       </div>
     </>
