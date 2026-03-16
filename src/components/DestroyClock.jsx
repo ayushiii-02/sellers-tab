@@ -1,29 +1,38 @@
 // ModelViewer.jsx
-import { useState, useRef, useEffect, useMemo, Suspense, useCallback } from "react";
+//
+// Supports 3 models with animated stone transitions between any pair.
+//
+// TAB CONTROL:
+//   window event "model-tab-change" { detail: { index: 1 | 2 | 3 } }
+//   Clicking while animating is ignored.
+
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useGLTF, Environment } from "@react-three/drei";
 import * as THREE from "three";
 
-// ── Config ────────────────────────────────────────────────────────────────────
+// ── Config 
 
 const MODEL_PATHS = [
-  "https://sellers-tab.vercel.app/The Keystone 3.glb",
-  "https://sellers-tab.vercel.app/The Oracle's Eye 3.glb",
-  "https://sellers-tab.vercel.app/The Lodestone Compass.glb",
-  "https://sellers-tab.vercel.app/The Resonating Bell.glb",
-  "https://sellers-tab.vercel.app/The Interlocking Gears.glb",
+"https://sellers-tab.vercel.app/The Keystone 3.glb",
+"https://sellers-tab.vercel.app/The Oracle's Eye 3.glb",
+"https://sellers-tab.vercel.app/The Lodestone Compass.glb",
+"https://sellers-tab.vercel.app/The Resonating Bell.glb",
+"https://sellers-tab.vercel.app/The Interlocking Gears.glb",
 ];
 const MODEL_SCALE = 5.5;
 
-const EXPLODE_DUR          = 0.95;
-const MORPH_DUR            = 3.0;
-const REVEALED_DUR         = 1.6;
+const EXPLODE_DUR  = 0.95;  // slightly slower breakout
+const MORPH_DUR    = 3.0;   // a touch more breathing room
+const REVEALED_DUR = 1.6;   // settle feels less rushed
+
 const EXPLODE_STAGGER_FRAC = 0.10;
+const STAGGER_END          = 0.50;
 const SCATTER_RADIUS       = 0.30;
 const SCATTER_SCALE        = 2.2;
 const ARC_HEIGHT           = 0.18;
 
-// ── Easing ────────────────────────────────────────────────────────────────────
+// ── Easing 
 
 const ease = {
   outCubic:   (t) => 1 - (1 - t) ** 3,
@@ -69,39 +78,31 @@ function buildControlPoint(A, B, arcRng) {
     .addScaledVector(perp, arcMag * 0.4);
 }
 
-// ── Parse model ───────────────────────────────────────────────────────────────
+// ── Parse model 
 
 function parseModel(scene) {
   const shards = [], bodies = [];
   scene.updateWorldMatrix(true, true);
-
   scene.traverse((obj) => {
     if (!obj.isMesh) return;
-
     if (obj.name.toLowerCase().includes("cell")) {
       const box = new THREE.Box3().setFromObject(obj);
       const center = new THREE.Vector3();
       box.getCenter(center);
-
-      shards.push({
-        mesh: obj.clone(),   // 👈 clone here
-        worldCenter: center
-      });
-
+      shards.push({ mesh: obj, worldCenter: center });
     } else {
-      bodies.push(obj.clone()); // 👈 clone here
+      bodies.push(obj);
     }
   });
-
   return { shards, bodies };
 }
 
 // ── Clone a shard ─────────────────────────────────────────────────────────────
 
 function cloneShard(sourceMesh) {
-  const c        = sourceMesh.clone();
-  c.geometry     = sourceMesh.geometry;
-  c.material     = sourceMesh.material.clone();
+  const c = sourceMesh.clone();
+  c.geometry = sourceMesh.geometry;
+  c.material = sourceMesh.material.clone();
   c.material.depthWrite  = true;
   c.material.transparent = false;
   c.material.opacity     = 1;
@@ -138,8 +139,8 @@ function buildShardData(shards1, shards2, count) {
       Math.sin(angle) * Math.cos(elevation) * radius * 0.45,
     ));
 
-    const tumbleAxis  = new THREE.Vector3(rng() - 0.5, rng() - 0.5, rng() - 0.5).normalize();
-    const tumbleAngle = (rng() - 0.5) * Math.PI * 1.2;
+    const tumbleAxis   = new THREE.Vector3(rng() - 0.5, rng() - 0.5, rng() - 0.5).normalize();
+    const tumbleAngle  = (rng() - 0.5) * Math.PI * 1.2;
     const explodeDelay = (kickOrder.indexOf(i) / Math.max(count - 1, 1)) * explodeStagger;
 
     return { src, scattered, target, tumbleAxis, tumbleAngle, explodeDelay };
@@ -168,40 +169,6 @@ function hideMesh(mesh) {
 function resetShardsHidden(shards) { shards.forEach(({ mesh }) => hideMesh(mesh)); }
 function resetBodiesHidden(bodies) { bodies.forEach((m) => hideMesh(m)); }
 function resetBodiesSolid(bodies)  { bodies.forEach((m) => showMeshSolid(m)); }
-
-// ── Apply materials to a scene (idempotent via external tracker) ──────────────
-
-function applySceneMaterials(scene, index, appliedRef) {
-  if (appliedRef.current[index]) return;
-  appliedRef.current[index] = true;
-
-  const { shards, bodies } = parseModel(scene);
-  scene.traverse((obj) => {
-    if (!obj.isMesh) return;
-    obj.castShadow    = true;
-    obj.receiveShadow = true;
-    obj.material      = obj.material.clone();
-    obj.material.roughness       = 0.82;
-    obj.material.metalness       = 0.10;
-    obj.material.envMapIntensity = 0.50;
-    obj.material.transparent     = false;
-    obj.material.opacity         = 1;
-    obj.material.depthWrite      = true;
-    obj.material.needsUpdate     = true;
-    if (obj.name.toLowerCase().includes("cell")) obj.visible = false;
-  });
-  if (index === 0) resetBodiesSolid(bodies);
-  else             resetBodiesHidden(bodies);
-  resetShardsHidden(shards);
-}
-
-// ── Lazy model loader ─────────────────────────────────────────────────────────
-
-function ModelLoader({ path, onLoaded }) {
-  const { scene } = useGLTF(path);
-  useEffect(() => { onLoaded(scene); }, [scene, onLoaded]);
-  return null;
-}
 
 // ── StoneField ────────────────────────────────────────────────────────────────
 
@@ -258,6 +225,7 @@ function StoneField({ shards1, shards2, stateRef, onAllLanded }) {
     const grp = groupRef.current;
     if (!grp) return;
 
+    // ── IDLE / REVEALED
     if (phase === "idle" || phase === "revealed") {
       stoneClones.forEach((c) => { c.visible = false; });
       capturedRef.current = false;
@@ -265,6 +233,7 @@ function StoneField({ shards1, shards2, stateRef, onAllLanded }) {
       return;
     }
 
+    // ── EXPLODING
     if (phase === "exploding") {
       capturedRef.current = false;
       firedRef.current    = false;
@@ -298,6 +267,7 @@ function StoneField({ shards1, shards2, stateRef, onAllLanded }) {
       return;
     }
 
+    // ── MORPHING
     if (phase === "morphing") {
       if (!capturedRef.current) {
         shardData.forEach((sd, i) => {
@@ -307,9 +277,10 @@ function StoneField({ shards1, shards2, stateRef, onAllLanded }) {
         capturedRef.current = true;
       }
 
-      const morphT  = Math.min(elapsed / MORPH_DUR, 1);
-      let landedAll = true;
+      const morphT    = Math.min(elapsed / MORPH_DUR, 1);
+      let   landedAll = true;
 
+      // Tightened stagger + window so all shards converge faster
       const SPIN_END    = 0.34;
       const FLY_START   = 0.18;
       const FLY_STAGGER = 0.18;
@@ -387,7 +358,7 @@ function StoneField({ shards1, shards2, stateRef, onAllLanded }) {
             }
           } else {
             const cos = Math.cos(spinAngle), sin = Math.sin(spinAngle);
-            const px  = pinnedPos[i].x, pz = pinnedPos[i].z;
+            const px = pinnedPos[i].x, pz = pinnedPos[i].z;
             c.position.set(cos * px + sin * pz, pinnedPos[i].y, -sin * px + cos * pz);
             c.scale.setScalar(SCATTER_SCALE);
             c.quaternion.copy(c.userData.baseQuat ?? new THREE.Quaternion());
@@ -406,76 +377,32 @@ function StoneField({ shards1, shards2, stateRef, onAllLanded }) {
   return <group ref={groupRef} />;
 }
 
-// ── ModelViewerInner ──────────────────────────────────────────────────────────
+// ── ModelViewer ───────────────────────────────────────────────────────────────
 
-function ModelViewerInner() {
-  // ── The only blocking load — scene1 must exist before this component renders
+export default function ModelViewer() {
   const { scene: scene1 } = useGLTF(MODEL_PATHS[0]);
+  const { scene: scene2 } = useGLTF(MODEL_PATHS[1]);
+  const { scene: scene3 } = useGLTF(MODEL_PATHS[2]);
+  const { scene: scene4 } = useGLTF(MODEL_PATHS[3]);
+  const { scene: scene5 } = useGLTF(MODEL_PATHS[4]);
 
-  // materialApplied tracks whether we've set up each scene's materials yet
-  const materialApplied = useRef([false, false, false, false, false]);
+  const { shards: shards1, bodies: bodies1 } = useMemo(() => parseModel(scene1), [scene1]);
+  const { shards: shards2, bodies: bodies2 } = useMemo(() => parseModel(scene2), [scene2]);
+  const { shards: shards3, bodies: bodies3 } = useMemo(() => parseModel(scene3), [scene3]);
+  const { shards: shards4, bodies: bodies4 } = useMemo(() => parseModel(scene4), [scene4]);
+  const { shards: shards5, bodies: bodies5 } = useMemo(() => parseModel(scene5), [scene5]);
 
-  // Apply scene1 materials synchronously during render (before first paint)
-  // Safe because applySceneMaterials is idempotent
-  applySceneMaterials(scene1, 0, materialApplied);
+  const allShards = useMemo(() => [shards1, shards2, shards3, shards4, shards5], [shards1, shards2, shards3, shards4, shards5]);
+  const allBodies = useMemo(() => [bodies1, bodies2, bodies3, bodies4, bodies5], [bodies1, bodies2, bodies3, bodies4, bodies5]);
 
-  // scenes[0] is always scene1; 1-4 fill in lazily
-  const [scenes, setScenes] = useState(() => [scene1, null, null, null, null]);
+  const groupRef  = useRef();
 
-  // loadersMounted[i] = true means we mount <ModelLoader> for MODEL_PATHS[i]
-  // Start mounting loader for index 1 (model 2) immediately
-  const [loadersMounted, setLoadersMounted] = useState(
-    [false, true, false, false, false]  // index 0 = model1, already loaded, no loader needed
-  );
-
-  // loadedRef[i] = true means scene i is ready to use in transitions
-  const loadedRef = useRef([true, false, false, false, false]);
-
-  // handleLoaded[i] is called by ModelLoader when scene i finishes fetching
-  const handleLoaded = useMemo(
-    () =>
-      MODEL_PATHS.map((_, i) =>
-        (loadedScene) => {
-          // Apply materials before putting scene into state — prevents
-          // a render where the scene exists but materials aren't set up yet
-          applySceneMaterials(loadedScene, i, materialApplied);
-
-          loadedRef.current[i] = true;
-
-          setScenes((prev) => {
-            const next = [...prev];
-            next[i]    = loadedScene;
-            return next;
-          });
-
-          // Chain: once model i is done, mount loader for model i+1
-          setLoadersMounted((prev) => {
-            if (i + 1 >= MODEL_PATHS.length) return prev;
-            const next  = [...prev];
-            next[i + 1] = true;
-            return next;
-          });
-        }
-      ),
-    [] // eslint-disable-line react-hooks/exhaustive-deps
-  );
-
-  // Parse shards/bodies from each scene. Null scenes return empty arrays.
-  // Memoised per scene reference so this only recomputes when a scene changes.
-  const allParsed = useMemo(
-    () => scenes.map((s) => (s ? parseModel(s) : { shards: [], bodies: [] })),
-    [scenes]
-  );
-  const allShards = useMemo(() => allParsed.map((p) => p.shards), [allParsed]);
-  const allBodies = useMemo(() => allParsed.map((p) => p.bodies), [allParsed]);
-
-  // ── Refs ──────────────────────────────────────────────────────────────────
-  const groupRef         = useRef();
   const animState        = useRef({ phase: "idle", elapsed: 0 });
   const lastEmittedPhase = useRef("idle");
   const { gl }           = useThree();
 
   const [transitionKey, setTransitionKey] = useState(0);
+
   const srcModelIdxRef = useRef(0);
   const dstModelIdxRef = useRef(0);
   const activeModelRef = useRef(0);
@@ -483,19 +410,46 @@ function ModelViewerInner() {
   const tilt       = useRef({ x: 0, y: 0.35 });
   const targetTilt = useRef({ x: 0, y: 0.35 });
 
-  // ── Tab event ─────────────────────────────────────────────────────────────
+  // ── Setup materials ───────────────────────────────────────────────────────
+  useEffect(() => {
+    [scene1, scene2, scene3, scene4, scene5].forEach((scene) => {
+      scene.traverse((obj) => {
+        if (!obj.isMesh) return;
+        obj.castShadow    = true;
+        obj.receiveShadow = true;
+        obj.material      = obj.material.clone();
+        obj.material.roughness       = 0.82;
+        obj.material.metalness       = 0.10;
+        obj.material.envMapIntensity = 0.50;
+        obj.material.transparent     = false;
+        obj.material.opacity         = 1;
+        obj.material.depthWrite      = true;
+        obj.material.needsUpdate     = true;
+        if (obj.name.toLowerCase().includes("cell")) obj.visible = false;
+      });
+    });
+
+    resetBodiesSolid(bodies1);
+    resetBodiesHidden(bodies2);
+    resetBodiesHidden(bodies3);
+    resetBodiesHidden(bodies4);
+    resetBodiesHidden(bodies5);
+    resetShardsHidden(shards1);
+    resetShardsHidden(shards2);
+    resetShardsHidden(shards3);
+    resetShardsHidden(shards4);
+    resetShardsHidden(shards5);
+  }, [scene1, scene2, scene3, scene4, scene5, shards1, shards2, shards3, shards4, shards5, bodies1, bodies2, bodies3, bodies4, bodies5]);
+
+  // ── Tab event listener ────────────────────────────────────────────────────
   useEffect(() => {
     const handler = (e) => {
-      const reqIdx = (e.detail?.index ?? 1) - 1;
-
-      if (!loadedRef.current[reqIdx]) {
-        console.warn(`Model ${reqIdx + 1} not ready yet`);
-        return;
-      }
+      const requested = e.detail?.index;
+      const reqIdx    = (requested ?? 1) - 1;
+      const st        = animState.current;
 
       if (reqIdx === activeModelRef.current) return;
-
-      const st = animState.current;
+      // if (st.phase === "exploding" || st.phase === "morphing" || st.phase === "revealed") return;
 
       allShards.forEach((s) => resetShardsHidden(s));
       allBodies.forEach((b) => resetBodiesHidden(b));
@@ -521,24 +475,23 @@ function ModelViewerInner() {
 
   // ── Mouse tilt ────────────────────────────────────────────────────────────
   useEffect(() => {
-    const canvas  = gl.domElement;
-    const onMove  = (e) => {
+    const canvas = gl.domElement;
+    const onMove = (e) => {
       const r = canvas.getBoundingClientRect();
       targetTilt.current.x = -((e.clientY - r.top)  / r.height * 2 - 1) * 0.18;
       targetTilt.current.y =  0.35 + ((e.clientX - r.left) / r.width * 2 - 1) * 0.22;
     };
     const onLeave = () => { targetTilt.current.x = 0; targetTilt.current.y = 0.35; };
-    canvas.addEventListener("mousemove",  onMove);
+    canvas.addEventListener("mousemove", onMove);
     canvas.addEventListener("mouseleave", onLeave);
     return () => {
-      canvas.removeEventListener("mousemove",  onMove);
+      canvas.removeEventListener("mousemove", onMove);
       canvas.removeEventListener("mouseleave", onLeave);
     };
   }, [gl]);
 
-  // ── Render loop ───────────────────────────────────────────────────────────
+  // ── Main render loop ──────────────────────────────────────────────────────
   useFrame((_, delta) => {
-    // Smooth tilt
     tilt.current.x += (targetTilt.current.x - tilt.current.x) * 0.05;
     tilt.current.y += (targetTilt.current.y - tilt.current.y) * 0.05;
     if (groupRef.current) {
@@ -547,29 +500,24 @@ function ModelViewerInner() {
     }
 
     const st = animState.current;
+    st.elapsed += delta;
 
-    // ── Only advance elapsed when actually animating ─────────────────────────
-    if (st.phase !== "idle") {
-      st.elapsed += delta;
-    }
-
-    if (st.phase === "exploding" && st.elapsed >= EXPLODE_DUR)     { st.phase = "morphing"; st.elapsed = 0; }
-    if (st.phase === "morphing"  && st.elapsed >= MORPH_DUR + 1.0) { st.phase = "revealed"; st.elapsed = 0; }
-    if (st.phase === "revealed"  && st.elapsed >= REVEALED_DUR)    { st.phase = "idle";     st.elapsed = 0; }
+    if (st.phase === "exploding" && st.elapsed >= EXPLODE_DUR)      { st.phase = "morphing";  st.elapsed = 0; }
+    if (st.phase === "morphing"  && st.elapsed >= MORPH_DUR + 1.0)  { st.phase = "revealed";  st.elapsed = 0; }
+    if (st.phase === "revealed"  && st.elapsed >= REVEALED_DUR)     { st.phase = "idle";       st.elapsed = 0; }
 
     if (st.phase !== lastEmittedPhase.current) {
       lastEmittedPhase.current = st.phase;
       window.dispatchEvent(new CustomEvent("model-animation-state", {
-        detail: { busy: st.phase !== "idle", phase: st.phase },
+        detail: { busy: st.phase !== "idle", phase: st.phase }
       }));
     }
 
     const MORPH_TAIL_START = MORPH_DUR * 0.50;
     const MORPH_TAIL_SPAN  = MORPH_DUR * 0.35;
-    const morphTail =
-      st.phase === "morphing"
-        ? THREE.MathUtils.clamp((st.elapsed - MORPH_TAIL_START) / MORPH_TAIL_SPAN, 0, 1)
-        : st.phase === "revealed" ? 1 : 0;
+    const morphTail = st.phase === "morphing"
+      ? THREE.MathUtils.clamp((st.elapsed - MORPH_TAIL_START) / MORPH_TAIL_SPAN, 0, 1)
+      : (st.phase === "revealed" ? 1 : 0);
 
     const dstIdx    = dstModelIdxRef.current;
     const activeIdx = activeModelRef.current;
@@ -585,7 +533,7 @@ function ModelViewerInner() {
         (animating && isDst && st.phase === "morphing" && morphTail > 0);
 
       if (showSolid) {
-        const opacity = st.phase === "morphing" && isDst ? morphTail : 1;
+        const opacity = (st.phase === "morphing" && isDst) ? morphTail : 1;
         bodies.forEach((m) => {
           m.visible              = true;
           m.material.transparent = opacity < 0.999;
@@ -603,8 +551,8 @@ function ModelViewerInner() {
     }
   });
 
-  const srcShards = allShards[srcModelIdxRef.current] ?? allShards[0];
-  const dstShards = allShards[dstModelIdxRef.current] ?? allShards[0];
+  const srcShards = allShards[srcModelIdxRef.current] ?? shards1;
+  const dstShards = allShards[dstModelIdxRef.current] ?? shards2;
 
   return (
     <>
@@ -613,64 +561,50 @@ function ModelViewerInner() {
       <directionalLight
         position={[4, 6, 5]} intensity={0.90} castShadow
         shadow-mapSize={[2048, 2048]}
-        shadow-camera-near={0.1}  shadow-camera-far={50}
+        shadow-camera-near={0.1} shadow-camera-far={50}
         shadow-camera-left={-10} shadow-camera-right={10}
         shadow-camera-top={10}   shadow-camera-bottom={-10}
       />
       <directionalLight position={[-3, 2, 3]}  intensity={0.20} color="#8aa0cc" />
-      <pointLight       position={[0, -3, 2]}  intensity={0.12} />
-      <pointLight       position={[3,  1, -3]} intensity={0.28} color="#ffe4cc" />
-      <pointLight       position={[-3, 2, -2]} intensity={0.20} color="#d4f0ff" />
+      <pointLight       position={[0, -3, 2]}   intensity={0.12} />
+      <pointLight       position={[3,  1, -3]}  intensity={0.28} color="#ffe4cc" />
+      <pointLight       position={[-3, 2, -2]}  intensity={0.20} color="#d4f0ff" />
 
       <group ref={groupRef}>
-        {/* Body meshes for every loaded scene */}
-        {allBodies.map((bodies, i) => (
-          <group key={i} scale={MODEL_SCALE}>
-            {bodies.map((mesh, j) => (
-  <primitive key={j} object={mesh.clone()} />
-))}
-          </group>
-        ))}
 
-        {/* Scene roots kept in tree so drei can manage disposal */}
-        {scenes.map((scene, i) =>
-          scene ? <primitive key={i} object={scene} visible={false} /> : null
-        )}
+        <group scale={MODEL_SCALE}>
+          {bodies1.map((mesh, i) => <primitive key={i} object={mesh} />)}
+        </group>
+        <group scale={MODEL_SCALE}>
+          {bodies2.map((mesh, i) => <primitive key={i} object={mesh} />)}
+        </group>
+        <group scale={MODEL_SCALE}>
+          {bodies3.map((mesh, i) => <primitive key={i} object={mesh} />)}
+        </group>
+        <group scale={MODEL_SCALE}>
+          {bodies4.map((mesh, i) => <primitive key={i} object={mesh} />)}
+        </group>
+        <group scale={MODEL_SCALE}>
+          {bodies5.map((mesh, i) => <primitive key={i} object={mesh} />)}
+        </group>
 
-        {/* Shard transition layer */}
-        {srcShards.length > 0 && dstShards.length > 0 && (
-          <StoneField
-            key={transitionKey}
-            shards1={srcShards}
-            shards2={dstShards}
-            stateRef={animState}
-            onAllLanded={() => {}}
-          />
-        )}
+        <primitive object={scene1} visible={false} />
+        <primitive object={scene2} visible={false} />
+        <primitive object={scene3} visible={false} />
+        <primitive object={scene4} visible={false} />
+        <primitive object={scene5} visible={false} />
+
+        <StoneField
+          key={transitionKey}
+          shards1={srcShards}
+          shards2={dstShards}
+          stateRef={animState}
+          onAllLanded={() => {}}
+        />
+
       </group>
-
-      {/* Lazy loaders — index 0 is already loaded, so we start from index 1 */}
-      {MODEL_PATHS.slice(1).map((path, offset) => {
-        const i = offset + 1; // real index into MODEL_PATHS
-        return loadersMounted[i] ? (
-          <Suspense key={i} fallback={null}>
-            <ModelLoader path={path} onLoaded={handleLoaded[i]} />
-          </Suspense>
-        ) : null;
-      })}
     </>
   );
 }
 
-// ── Public export ─────────────────────────────────────────────────────────────
-
-export default function ModelViewer() {
-  return (
-    <Suspense fallback={null}>
-      <ModelViewerInner />
-    </Suspense>
-  );
-}
-
-// Kick off model 1 fetch as early as possible — nothing else blocks on it
-useGLTF.preload(MODEL_PATHS[0]);
+MODEL_PATHS.forEach((p) => useGLTF.preload(p));
