@@ -13,7 +13,7 @@ const styles = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg:        #f9f7f4;
+  
     --ink:       #1a1714;
     --ink-muted: #8a8179;
     --gold:      #c9a96e;
@@ -30,7 +30,7 @@ const styles = `
   
 `;
 
-// ── App ───────────────────────────────────────────────────────────────────────
+// ── App 
 export default function App() {
   // const [activeTab, setActiveTab]   = useState(1);
   // const [animating, setAnimating]   = useState(false);
@@ -80,7 +80,7 @@ export default function App() {
             camera={{ position: [0, 0, 5], fov: 30 }}
             gl={{ powerPreference: "high-performance" }}
           >
-            <color attach="background" args={["#f9f7f4"]} />
+            {/* <color attach="background" args={["#f9f7f4"]} /> */}
             <Experience />
           </Canvas>
         {/* </div> */}
