@@ -20,7 +20,7 @@ const MODEL_PATHS = [
 "https://sellers-tab.vercel.app/The Resonating Bell.glb",
 "https://sellers-tab.vercel.app/The Interlocking Gears.glb",
 ];
-const MODEL_SCALE = 5.5;
+const MODEL_SCALE = 7.0;
 
 const EXPLODE_DUR  = 0.95;  // slightly slower breakout
 const MORPH_DUR    = 3.0;   // a touch more breathing room
