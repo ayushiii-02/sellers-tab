@@ -5,6 +5,14 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vite + React</title>
+
+    <!-- Preload GLBs — browser fetches these immediately on HTML parse,
+         before React JS even starts executing -->
+    <link rel="preload" href="/The%20Keystone.glb"          as="fetch" crossorigin="anonymous" />
+    <link rel="preload" href="/The%20Oracle%27s%20Eye.glb"  as="fetch" crossorigin="anonymous" />
+    <link rel="preload" href="/The%20Lodestone%20Compass.glb" as="fetch" crossorigin="anonymous" />
+    <link rel="preload" href="/The%20Resonating%20Bell.glb" as="fetch" crossorigin="anonymous" />
+    <link rel="preload" href="/The%20Interlocking%20Gears.glb" as="fetch" crossorigin="anonymous" />
   </head>
   <body>
     <div id="root"></div>
