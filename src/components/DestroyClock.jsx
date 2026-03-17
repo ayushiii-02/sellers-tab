@@ -492,8 +492,12 @@ export default function ModelViewer() {
 
   // ── Main render loop ──────────────────────────────────────────────────────
   useFrame((_, delta) => {
-    tilt.current.x += (targetTilt.current.x - tilt.current.x) * 0.05;
-    tilt.current.y += (targetTilt.current.y - tilt.current.y) * 0.05;
+    const idleTime = Date.now() * 0.001;
+const idleX = Math.sin(idleTime * 0.4) * 0.06;
+const idleY = 0.35 + Math.sin(idleTime * 0.3) * 0.08;
+
+tilt.current.x += (targetTilt.current.x + idleX - tilt.current.x) * 0.05;
+tilt.current.y += (targetTilt.current.y + idleY - tilt.current.y) * 0.05;
     if (groupRef.current) {
       groupRef.current.rotation.x = tilt.current.x;
       groupRef.current.rotation.y = tilt.current.y;
