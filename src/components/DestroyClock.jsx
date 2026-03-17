@@ -407,8 +407,8 @@ export default function ModelViewer() {
   const dstModelIdxRef = useRef(0);
   const activeModelRef = useRef(0);
 
-  const tilt       = useRef({ x: 0, y: 0.35 });
-  const targetTilt = useRef({ x: 0, y: 0.35 });
+  const tilt       = useRef({ x: 0, y: 0 });
+  const targetTilt = useRef({ x: 0, y: 0 });
 
   // ── Setup materials ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -481,7 +481,7 @@ export default function ModelViewer() {
       targetTilt.current.x = -((e.clientY - r.top)  / r.height * 2 - 1) * 0.18;
       targetTilt.current.y =  0.35 + ((e.clientX - r.left) / r.width * 2 - 1) * 0.22;
     };
-    const onLeave = () => { targetTilt.current.x = 0; targetTilt.current.y = 0.35; };
+    const onLeave = () => { targetTilt.current.x = 0; targetTilt.current.y = 0; };
     canvas.addEventListener("mousemove", onMove);
     canvas.addEventListener("mouseleave", onLeave);
     return () => {
@@ -492,12 +492,11 @@ export default function ModelViewer() {
 
   // ── Main render loop ──────────────────────────────────────────────────────
   useFrame((_, delta) => {
-    const idleTime = Date.now() * 0.001;
-const idleX = Math.sin(idleTime * 0.4) * 0.06;
-const idleY = 0.35 + Math.sin(idleTime * 0.3) * 0.08;
+const idleTime = Date.now() * 0.001;
+const idleY = Math.sin(idleTime * 2.0) * 0.09;
 
-tilt.current.x += (targetTilt.current.x + idleX - tilt.current.x) * 0.05;
-tilt.current.y += (targetTilt.current.y + idleY - tilt.current.y) * 0.05;
+tilt.current.x += (targetTilt.current.x - tilt.current.x) * 0.01;
+tilt.current.y += (targetTilt.current.y + idleY - tilt.current.y) * 0.06;
     if (groupRef.current) {
       groupRef.current.rotation.x = tilt.current.x;
       groupRef.current.rotation.y = tilt.current.y;
