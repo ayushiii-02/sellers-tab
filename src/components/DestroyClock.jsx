@@ -418,9 +418,9 @@ export default function ModelViewer() {
         obj.castShadow    = true;
         obj.receiveShadow = true;
         obj.material      = obj.material.clone();
-        obj.material.roughness       = 0.82;
-        obj.material.metalness       = 0.10;
-        obj.material.envMapIntensity = 0.50;
+        obj.material.roughness       = 0.92;
+obj.material.metalness       = 0.05;
+obj.material.envMapIntensity = 0.10;
         obj.material.transparent     = false;
         obj.material.opacity         = 1;
         obj.material.depthWrite      = true;
@@ -473,7 +473,7 @@ export default function ModelViewer() {
     return () => window.removeEventListener("model-tab-change", handler);
   }, [allShards, allBodies]);
 
-  // ── Mouse tilt ────────────────────────────────────────────────────────────
+  // ── Mouse tilt 
   useEffect(() => {
     const canvas = gl.domElement;
     const onMove = (e) => {
@@ -490,7 +490,7 @@ export default function ModelViewer() {
     };
   }, [gl]);
 
-  // ── Main render loop ──────────────────────────────────────────────────────
+  // ── Main render loop 
   useFrame((_, delta) => {
 const idleTime = Date.now() * 0.001;
 const idleY = Math.sin(idleTime * 2.0) * 0.09;
