@@ -14,8 +14,8 @@ import * as THREE from "three";
 // ── Config 
 
 const MODEL_PATHS = [
-"https://sellers-tab.vercel.app/puzzle.glb",
-"https://sellers-tab.vercel.app/The Oracle's Eye 3.glb",
+"https://sellers-tab.vercel.app/The Keystone.glb",
+"https://sellers-tab.vercel.app/The Oracle's Eye.glb",
 "https://sellers-tab.vercel.app/The Lodestone Compass.glb",
 "https://sellers-tab.vercel.app/The Resonating Bell.glb",
 "https://sellers-tab.vercel.app/The Interlocking Gears.glb",
@@ -40,7 +40,7 @@ const ease = {
   inOutSine:  (t) => -(Math.cos(Math.PI * t) - 1) / 2,
 };
 
-// ── Seeded RNG ────────────────────────────────────────────────────────────────
+// ── Seeded RNG 
 
 function createRng(seed) {
   let s = ((seed * 1664525 + 1013904223) >>> 0);
@@ -56,7 +56,7 @@ function seededShuffle(arr, rng) {
   return r;
 }
 
-// ── Bezier ────────────────────────────────────────────────────────────────────
+// ── Bezier 
 
 function bezierPoint(A, B, C, t) {
   const mt = 1 - t;
