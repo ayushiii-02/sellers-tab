@@ -14,7 +14,7 @@ import * as THREE from "three";
 // ── Config 
 
 const MODEL_PATHS = [
-"https://sellers-tab.vercel.app/puzzle_new.glb",
+"https://sellers-tab.vercel.app/The Keystone.glb",
 "https://sellers-tab.vercel.app/The Oracle's Eye.glb",
 "https://sellers-tab.vercel.app/The Lodestone Compass.glb",
 "https://sellers-tab.vercel.app/The Resonating Bell.glb",
